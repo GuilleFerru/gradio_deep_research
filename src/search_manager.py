@@ -1,4 +1,5 @@
 from agents import Agent, WebSearchTool, trace, Runner, gen_trace_id
+from refinement_agent import refinement_agent, RefinementQuestion
 from planner_agent import planner_agent, WebSearchItem, WebSearchPlan
 from writer_agent import writer_agent, ResearchReport
 from search_agent import search_agent
@@ -23,12 +24,23 @@ class SearchManager:
         trace_id = gen_trace_id()
         with trace("DeepSearch trace", trace_id=trace_id):
             await self.log(f"Starting deep search for query: {query}")
+            refine_query = await self.query_refinement(query)
+            
             search_plan = await self.plan_searches(query)
             search_results = await self.run_searches(search_plan)
             report = await self.write_report(query,search_results)
             return report
     
     
+    async def query_refinement(self, query:str) -> RefinementQuestion:
+        """ Refine the query to improve search results. """
+        await self.log("Refining query: " + query)
+        result = await Runner.run(refinement_agent, query)
+        await self.log("Query refinement completed successfully.")
+        return result.final_output_as(RefinementQuestion)
+    
+    
+        
     async def plan_searches(self, query:str) -> WebSearchPlan:
         """ Plan the searches needed to answer the query. """
         await self.log("Planning searches for query: " + query)
