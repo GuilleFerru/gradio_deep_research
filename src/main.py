@@ -6,8 +6,6 @@ import asyncio
 
 load_dotenv(override=True)
 
-message = "Latest AI Agent frameworks in 2025"
-
 
 async def main(query):
     # Create a queue for communication between callbacks and main function
@@ -53,45 +51,78 @@ async def main(query):
     formatted_result = format_search_plan_as_markdown(result)
     
     # Yield the final state with both progress and results
-    progress_messages.append("Research complete!")
+    progress_messages.append("Research complete")
+    progress_messages.append("Check Research Result Tab!!!!")
     yield format_progress(progress_messages), formatted_result
 
-def format_search_plan_as_markdown(search_results):
-    """Format the search results as Markdown for display in Gradio.
+def format_search_plan_as_markdown(result):
+    """Format the research report as Markdown for display in Gradio.
     
     Args:
-        search_results: A list of search results returned from search_manager.run()
+        result: Could be a ResearchReport object or other types
     """
-    if not search_results:
-        return "No search results available."
+    if not result:
+        return "No research results available."
     
-    md = "## Search Results\n\n"
+    # Handle ResearchReport type (from writer_agent)
+    if hasattr(result, 'markdown_content') and hasattr(result, 'short_summary'):
+        # This is a ResearchReport object
+        md = f"# Research Report\n\n"
+        md += f"## Summary\n\n{result.short_summary}\n\n"
+        md += f"---\n\n"
+        md += f"{result.markdown_content}\n\n"
+        
+        if hasattr(result, 'follow_up_questions') and result.follow_up_questions:
+            md += f"\n\n## Follow-up Questions\n\n"
+            for i, question in enumerate(result.follow_up_questions, 1):
+                md += f"{i}. {question}\n"
+        
+        return md
     
-    for i, result in enumerate(search_results, 1):
-        if hasattr(result, 'final_output'):
-            md += f"### Result {i}: {result.query}\n\n"
-            md += f"{result.final_output}\n\n"
-            md += "---\n\n"
-        elif isinstance(result, str):
-            md += f"### Result {i}\n\n"
-            md += f"{result}\n\n"
-            md += "---\n\n"
-        else:
-            md += f"### Result {i}\n\n"
-            md += f"Result format not recognized: {type(result)}\n\n"
-            md += "---\n\n"
+    # Handle list of search results (from previous implementation)
+    elif isinstance(result, list):
+        md = "## Search Results\n\n"
+        
+        for i, item in enumerate(result, 1):
+            if hasattr(item, 'final_output'):
+                md += f"### Result {i}: {item.query if hasattr(item, 'query') else ''}\n\n"
+                md += f"{item.final_output}\n\n"
+                md += "---\n\n"
+            elif isinstance(item, str):
+                md += f"### Result {i}\n\n"
+                md += f"{item}\n\n"
+                md += "---\n\n"
+            else:
+                md += f"### Result {i}\n\n"
+                md += f"Result format not recognized: {type(item)}\n\n"
+                md += "---\n\n"
+        
+        return md
     
-    return md
+    # Handle string or other formats
+    elif isinstance(result, str):
+        return result
+    else:
+        return f"Unsupported result type: {type(result)}"
 
 
-with gr.Blocks(theme=gr.themes.Default(primary_hue="sky")) as ui:
-    gr.Markdown("# Deep Research")
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="blue")) as ui:
+    with gr.Row(elem_id="header"):
+        gr.Markdown("## 🔍 Deep Research Agent", elem_id="title")
+    gr.Markdown("*Clarify your query, perform research, then generate an email.*", elem_id="subtitle")
     
-    query_input = gr.Textbox(label="Query", value=message, lines=2)
-    run_button = gr.Button("Run", variant="primary")
+    with gr.Tabs():
+        with gr.TabItem("Progress Logs"):
+                progress_output = gr.Markdown(label="Progress", value="Ready to search...")
+                query_input = gr.Textbox(label="Query",  placeholder="Enter the topic you want to explore...", lines=1)
+                with gr.Row(elem_id="controls"):
+                    run_button = gr.Button("Run Workflow", variant="primary", size="lg")
+        with gr.TabItem("Research Result"):
+                result_output = gr.Markdown(label="Research Result")
+                
+    with gr.Row(elem_id="footer"):
+        gr.HTML("<p style='text-align:center;'>Built with ❤️ using Gradio</p>")   
 
-    progress_output = gr.Markdown(label="Progress", value="Ready to search...")
-    result_output = gr.Markdown(label="Research Results")
 
     run_button.click(
         fn=main,
@@ -102,9 +133,6 @@ with gr.Blocks(theme=gr.themes.Default(primary_hue="sky")) as ui:
     )
     
 ui.launch(inbrowser=True)
-
-
-
 
 
 

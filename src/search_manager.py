@@ -1,16 +1,12 @@
 from agents import Agent, WebSearchTool, trace, Runner, gen_trace_id
 from planner_agent import planner_agent, WebSearchItem, WebSearchPlan
+from writer_agent import writer_agent, ResearchReport
 from search_agent import search_agent
 import asyncio
 
 
 class SearchManager:
     def __init__(self, progress_callback=None):
-        """Initialize SearchManager with an optional progress callback function.
-        
-        Args:
-            progress_callback: A function that will be called with status messages
-        """
         self.progress_callback = progress_callback
     
     async def log(self, message):
@@ -29,8 +25,8 @@ class SearchManager:
             await self.log(f"Starting deep search for query: {query}")
             search_plan = await self.plan_searches(query)
             search_results = await self.run_searches(search_plan)
-            await self.log("Deep search completed.")
-            return search_results
+            report = await self.write_report(query,search_results)
+            return report
     
     
     async def plan_searches(self, query:str) -> WebSearchPlan:
@@ -54,13 +50,18 @@ class SearchManager:
         await self.log(f"Performing search for: {item.query}")
         result = await Runner.run(search_agent, item.query)
         await self.log(f"Search completed for: {item.query}")
-        
-        # Ensure we're returning the final_output if it exists
         if hasattr(result, 'final_output'):
             return result.final_output
         else:
             return result
 
+    async def write_report(self, query:str,search_results:list[str])-> ResearchReport:
+        """ Write the report for the query"""
+        await self.log("Running final report.")
+        input = f"Original query ={query}, search results ={search_results}"
+        result = await Runner.run(writer_agent, input)
+        return result.final_output_as(ResearchReport)
+        
 
 
 

@@ -6,9 +6,8 @@ from dotenv import load_dotenv
 QTY_SEARCHES = 1
 
 load_dotenv(override=True)
-
 model = os.getenv('AI_MODEL', '')
-print(f"Using model: {model}")
+
 
 INSTRUCTION = f"You are a helpful research assistant. Given a query, come up with a set of web searches \
 to perform to best answer the query. Output {QTY_SEARCHES} terms to query for."
