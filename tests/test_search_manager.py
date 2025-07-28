@@ -18,7 +18,7 @@ async def test_search_manager():
     load_dotenv(override=True)
     
     # Create a test query
-    test_query = "Latest AI Agent frameworks in 2025"
+    test_query = "Latest frameworks"
     print(f"Running search with query: '{test_query}'")
     
     # Create SearchManager instance and run search
