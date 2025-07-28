@@ -20,7 +20,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="blue")) as ui:
     with gr.Tabs():
         with gr.TabItem("Progress Logs"):
                 progress_output = gr.Markdown(label="Progress", value="Ready to search...")
-                query_input = gr.Textbox(label="Query", placeholder="Enter the topic you want to explore...", lines=1)
+                query_input = gr.Textbox(label="Query", placeholder="Enter the topic you want to explore...", lines=1, autofocus=True)
                 with gr.Row(elem_id="controls"):
                     run_button = gr.Button("Run Workflow", variant="primary", size="lg")
         with gr.TabItem("Research Result"):
@@ -32,9 +32,9 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="blue")) as ui:
     run_button.click(
         fn=main,
         inputs=query_input,
-        outputs=[progress_output, result_output],
+        outputs=[progress_output, result_output ],
         api_name="search",
-        queue=True  # Importante para manejar múltiples actualizaciones
+        queue=True 
     )
 
 # Function to launch the UI

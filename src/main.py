@@ -40,13 +40,14 @@ async def main(query):
     while not search_task.done():
         # Check for new progress messages (with timeout to prevent blocking)
         try:
-            message = await asyncio.wait_for(progress_queue.get(), timeout=0.1)
+            message = await asyncio.wait_for(progress_queue.get(), timeout=10)
             progress_messages.append(message)
+            print(f"Progress update: {message}")
             # Update UI with current progress
             yield format_progress(progress_messages), None
         except asyncio.TimeoutError:
             # No new message in the queue, continue checking
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(10)
     
     # Get the search result once it's complete
     result = await search_task
@@ -59,6 +60,10 @@ async def main(query):
     progress_messages.append("Check Research Result Tab!!!!")
     yield format_progress(progress_messages), formatted_result
 
+
+async def check_query(query):
+    print(f"Checking query: {query}")
+    progress_queue = asyncio.Queue()
 
 # Entry point when run directly
 if __name__ == "__main__":
