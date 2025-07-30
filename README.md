@@ -4,7 +4,7 @@
 
 Deep Research Agent is an AI-powered research assistant that helps users conduct comprehensive research on any topic. The application uses a multi-agent system to refine queries, plan search strategies, gather information, and generate detailed research reports.
 
-![Deep Research Agent](https://github.com/GuilleFerru/assets/raw/main/deep_research_banner.png)
+![Deep Research Agent](img/banner.png)
 
 ## Features
 
@@ -125,7 +125,7 @@ deep_research/
 
 ## Demo
 
-![Demo GIF](https://github.com/GuilleFerru/assets/raw/main/deep_research_demo.gif)
+![Demo GIF](img/demo.gif)
 
 ## License
 
