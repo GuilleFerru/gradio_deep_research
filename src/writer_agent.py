@@ -3,8 +3,6 @@ from pydantic import BaseModel, Field
 from agents import Agent
 from dotenv import load_dotenv
 
-QTY_SEARCHES = 1
-
 load_dotenv(override=True)
 model = os.getenv('AI_MODEL', '')
 

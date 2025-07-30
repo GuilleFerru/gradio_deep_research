@@ -1,9 +1,6 @@
 
 def format_search_plan_as_markdown(result):
     """Format the research report as Markdown for display in Gradio.
-    
-    Args:
-        result: Could be a ResearchReport object or other types
     """
     if not result:
         return "No research results available."

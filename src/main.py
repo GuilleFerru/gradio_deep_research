@@ -1,76 +1,88 @@
-"""
-Main functionality for Deep Research application
-"""
-from agents import Agent, WebSearchTool, trace, Runner, gen_trace_id, function_tool
 from search_manager import SearchManager
 from utils.markdown_formater import format_search_plan_as_markdown
 from dotenv import load_dotenv
 import asyncio
 
-# Load environment variables
 load_dotenv(override=True)
 
+global_search_manager = None
+global_progress_messages = []
 
-async def main(query):
-    # Create a queue for communication between callbacks and main function
-    progress_queue = asyncio.Queue()
-    progress_messages = ["Starting research process..."]
+async def main(query: str):
     
-    # Format progress messages as markdown with each message on its own line
-    def format_progress(messages):
+    global global_search_manager, global_progress_messages
+
+
+    progress_queue = asyncio.Queue()
+
+    def format_progress(messages: list[str]) -> str:
+        """Formats a list of messages as markdown."""
         formatted = "### Progress Log:\n\n"
-        for i, msg in enumerate(messages):
+        for msg in messages:
             formatted += f"- {msg}\n"
         return formatted
-    
-    # Initial state
-    yield format_progress(progress_messages), None
-    
-    # Define progress callback to add messages to the queue
-    async def update_progress(message):
-        await progress_queue.put(message)
-    
-    # Create SearchManager with our callback
-    search_manager = SearchManager(progress_callback=update_progress)
-    
-    # Start the search process in a separate task
-    search_task = asyncio.create_task(search_manager.run(query))
-    
-    # Process progress messages while waiting for the search to complete
+
+    # If no search is active, start a new search session: reset the progress log and create a SearchManager.
+    # Otherwise, reuse the existing manager and update its progress callback to write to our new queue.
+    if global_search_manager is None:
+        
+        global_progress_messages = ["Starting research process..."]
+        async def update_progress(message: str) -> None:
+            await progress_queue.put(message)
+        global_search_manager = SearchManager(progress_callback=update_progress)
+        
+    else:
+        
+        async def update_progress(message: str) -> None:
+            await progress_queue.put(message)
+        global_search_manager.progress_callback = update_progress
+
+    search_task = asyncio.create_task(global_search_manager.run(query))
+
+    # If this is the first call in a new session, yield the initial log.
+    if len(global_progress_messages) == 1:
+        yield format_progress(global_progress_messages), None
+
+    # Drain the queue as messages arrive. Each message is appended to the persistent log and emitted to the UI.
     while not search_task.done():
-        # Check for new progress messages (with timeout to prevent blocking)
         try:
-            message = await asyncio.wait_for(progress_queue.get(), timeout=10)
-            progress_messages.append(message)
-            print(f"Progress update: {message}")
-            # Update UI with current progress
-            yield format_progress(progress_messages), None
+            message = await asyncio.wait_for(progress_queue.get(), timeout=5.0)
+            global_progress_messages.append(message)
+            yield format_progress(global_progress_messages), None
         except asyncio.TimeoutError:
-            # No new message in the queue, continue checking
-            await asyncio.sleep(10)
-    
-    # Get the search result once it's complete
+            # Avoid blocking the event loop; yield control briefly.
+            await asyncio.sleep(0.1)
+
     result = await search_task
-    
-    # Format final results
+
+    # Append any remaining messages to the progress log.
+    while not progress_queue.empty():
+        try:
+            msg = progress_queue.get_nowait()
+            global_progress_messages.append(msg)
+        except Exception:
+            break
+
+    # If refinement is not complete (is_final=False), ask the user for more information and keep the search manager alive. Do not reset state.
+    if isinstance(result, dict) and not result.get("is_final", True):
+        global_progress_messages.append(
+            "**Awaiting additional information from user based on the above question.**"
+        )
+        yield format_progress(global_progress_messages), None
+        return
+
+    # Otherwise, the search is complete. Format the report and clean up
     formatted_result = format_search_plan_as_markdown(result)
-    
-    # Yield the final state with both progress and results
-    progress_messages.append("Research complete")
-    progress_messages.append("Check Research Result Tab!!!!")
-    yield format_progress(progress_messages), formatted_result
+    global_progress_messages.append("Research complete")
+    global_progress_messages.append("**Check Research Result Tab!!!!**")
+    yield format_progress(global_progress_messages), formatted_result
 
+    global_search_manager = None
+    global_progress_messages = []
 
-async def check_query(query):
-    print(f"Checking query: {query}")
-    progress_queue = asyncio.Queue()
-
-# Entry point when run directly
 if __name__ == "__main__":
-    # Import here to avoid circular imports
-    from gradio_ui import launch_ui
-    launch_ui()
-
-
-
+    from gradio_ui import GradioUI
+    
+    gradio = GradioUI()
+    gradio.launch()
 
